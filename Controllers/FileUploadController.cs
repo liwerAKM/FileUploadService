@@ -16,6 +16,7 @@ namespace FileUploadService.Controllers
         private readonly long _maxFileSizeBytes;
         private readonly string[] _allowedContentTypes;
         private readonly string _apiKey;
+        private readonly string _logPath;
 
         // 通过配置注入上传参数
         public FileUploadController(IConfiguration config)
@@ -33,6 +34,14 @@ namespace FileUploadService.Controllers
                                          .Get<string[]>() ?? Array.Empty<string>();
 
             _apiKey = config.GetValue<string>("ApiKeySettings:ApiKey") ?? string.Empty;
+
+            var logFile = config.GetValue<string>("UploadSettings:LogPath") ?? "Logs/upload.log";
+            _logPath = Path.Combine(Directory.GetCurrentDirectory(), logFile);
+            var logDir = Path.GetDirectoryName(_logPath);
+            if (!string.IsNullOrEmpty(logDir) && !Directory.Exists(logDir))
+            {
+                Directory.CreateDirectory(logDir);
+            }
 
             // 确保上传目录存在
             if (!Directory.Exists(_uploadPath))
@@ -90,6 +99,8 @@ namespace FileUploadService.Controllers
                 {
                     await file.CopyToAsync(stream);
                 }
+
+                WriteUploadLog(file.FileName, file.Length);
 
                 return Ok(new
                 {
@@ -158,6 +169,8 @@ namespace FileUploadService.Controllers
                         await file.CopyToAsync(stream);
                     }
 
+                    WriteUploadLog(file.FileName, file.Length);
+
                     result.Add(new
                     {
                         Success = true,
@@ -178,6 +191,12 @@ namespace FileUploadService.Controllers
             }
 
             return Ok(result);
+        }
+
+        private void WriteUploadLog(string fileName, long fileSizeBytes)
+        {
+            var logLine = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss}, {fileName}, {fileSizeBytes} bytes{Environment.NewLine}";
+            System.IO.File.AppendAllText(_logPath, logLine);
         }
     }
 }
