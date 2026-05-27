@@ -48,31 +48,35 @@ try
     });
 
     builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
     var app = builder.Build();
 
-    // 3. 绑定外部可访问端口（保持不变）
-    app.Urls.Add("http://0.0.0.0:5000");
-    Console.WriteLine("服务绑定端口：http://0.0.0.0:5000");
-
-    // 开发环境配置（保持不变）
+    // 开发环境配置
     if (app.Environment.IsDevelopment())
     {
         app.UseDeveloperExceptionPage();
-        Console.WriteLine("启用开发环境异常页");
+        app.UseSwagger();
+        app.UseSwaggerUI();
+        Console.WriteLine("启用开发环境异常页与 Swagger");
     }
     else
     {
         app.UseHsts();
     }
 
-    // 4. 启用跨域（保持不变）
+    // 启用跨域
     app.UseCors("AllowSpecificServer");
     Console.WriteLine("已启用跨域策略：AllowSpecificServer");
 
     app.UseRouting();
     app.MapControllers();
 
-    // 启动服务
+    foreach (var url in app.Urls)
+    {
+        Console.WriteLine($"服务地址：{url}");
+    }
+    Console.WriteLine("本地访问：http://localhost:5166/swagger");
     Console.WriteLine("服务开始启动...");
     app.Run();
 }

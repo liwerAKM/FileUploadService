@@ -15,6 +15,7 @@ namespace FileUploadService.Controllers
         private readonly string _uploadPath;
         private readonly long _maxFileSizeBytes;
         private readonly string[] _allowedContentTypes;
+        private readonly string _apiKey;
 
         // 通过配置注入上传参数
         public FileUploadController(IConfiguration config)
@@ -31,6 +32,8 @@ namespace FileUploadService.Controllers
             _allowedContentTypes = config.GetSection("UploadSettings:AllowedContentTypes")
                                          .Get<string[]>() ?? Array.Empty<string>();
 
+            _apiKey = config.GetValue<string>("ApiKeySettings:ApiKey") ?? string.Empty;
+
             // 确保上传目录存在
             if (!Directory.Exists(_uploadPath))
             {
@@ -42,10 +45,15 @@ namespace FileUploadService.Controllers
         /// 单文件上传接口
         /// </summary>
         [HttpPost("single")]
-        public async Task<IActionResult> UploadSingleFile(IFormFile file)
+        public async Task<IActionResult> UploadSingleFile(IFormFile file, [FromForm] string apikey)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(apikey) || apikey != _apiKey)
+                {
+                    return Unauthorized(new { Success = false, Message = "无效的 API Key" });
+                }
+
                 // 验证文件是否存在
                 if (file == null || file.Length == 0)
                 {
